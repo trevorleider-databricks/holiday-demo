@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Santa's Delivery Pipeline - Delta Live Tables
 # MAGIC 
-# MAGIC This DLT pipeline processes Santa's gift delivery data through Bronze, Silver, and Gold layers.
+# MAGIC This dp pipeline processes Santa's gift delivery data through Bronze, Silver, and Gold layers.
 # MAGIC 
 # MAGIC **Architecture:**
 # MAGIC - Bronze: Raw ingestion from streaming source
@@ -11,7 +11,7 @@
 
 # COMMAND ----------
 
-import dlt
+from pyspark import pipelines as dp
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 from datetime import datetime
@@ -28,7 +28,7 @@ source_path = spark.conf.get("source_path", "/tmp/santa_deliveries")
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="bronze_santa_deliveries",
     comment="Raw delivery events from Santa's sleigh tracking system",
     table_properties={
@@ -56,7 +56,7 @@ def bronze_santa_deliveries():
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="silver_santa_deliveries",
     comment="Cleaned and enriched delivery events with data quality checks",
     table_properties={
@@ -64,11 +64,11 @@ def bronze_santa_deliveries():
         "pipelines.autoOptimize.zOrderCols": "delivery_timestamp,region"
     }
 )
-@dlt.expect_or_drop("valid_delivery_id", "delivery_id IS NOT NULL")
-@dlt.expect_or_drop("valid_timestamp", "timestamp IS NOT NULL")
-@dlt.expect_or_drop("valid_status", "status IN ('en_route', 'delivered', 'delayed')")
-@dlt.expect_or_drop("valid_coordinates", "latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180")
-@dlt.expect_or_drop("positive_gifts", "num_gifts > 0")
+@dp.expect_or_drop("valid_delivery_id", "delivery_id IS NOT NULL")
+@dp.expect_or_drop("valid_timestamp", "timestamp IS NOT NULL")
+@dp.expect_or_drop("valid_status", "status IN ('en_route', 'delivered', 'delayed')")
+@dp.expect_or_drop("valid_coordinates", "latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180")
+@dp.expect_or_drop("positive_gifts", "num_gifts > 0")
 def silver_santa_deliveries():
     """
     Silver table: Clean, validate, and enrich delivery data.
@@ -78,7 +78,7 @@ def silver_santa_deliveries():
     - Add delivery performance indicators
     """
     return (
-        dlt.read_stream("bronze_santa_deliveries")
+        dp.read_stream("bronze_santa_deliveries")
             .withColumn("delivery_timestamp", to_timestamp("timestamp"))
             .withColumn("delivery_date", to_date("delivery_timestamp"))
             .withColumn("delivery_hour", hour("delivery_timestamp"))
@@ -144,7 +144,7 @@ def silver_santa_deliveries():
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="gold_delivery_summary_realtime",
     comment="Real-time delivery metrics for dashboard - 1 minute windows",
     table_properties={
@@ -158,7 +158,7 @@ def gold_delivery_summary_realtime():
     Provides KPIs for the real-time dashboard.
     """
     return (
-        dlt.read_stream("silver_santa_deliveries")
+        dp.read_stream("silver_santa_deliveries")
             .withWatermark("delivery_timestamp", "5 minutes")
             .groupBy(
                 window("delivery_timestamp", "1 minute").alias("time_window")
@@ -213,7 +213,7 @@ def gold_delivery_summary_realtime():
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="gold_delivery_by_region",
     comment="Delivery metrics aggregated by region",
     table_properties={
@@ -226,7 +226,7 @@ def gold_delivery_by_region():
     Shows performance across different world regions.
     """
     return (
-        dlt.read_stream("silver_santa_deliveries")
+        dp.read_stream("silver_santa_deliveries")
             .withWatermark("delivery_timestamp", "5 minutes")
             .groupBy(
                 window("delivery_timestamp", "5 minutes").alias("time_window"),
@@ -263,7 +263,7 @@ def gold_delivery_by_region():
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="gold_delivery_by_gift_type",
     comment="Delivery metrics aggregated by gift type",
     table_properties={
@@ -276,7 +276,7 @@ def gold_delivery_by_gift_type():
     Helps understand which types of gifts take longer to deliver.
     """
     return (
-        dlt.read_stream("silver_santa_deliveries")
+        dp.read_stream("silver_santa_deliveries")
             .withWatermark("delivery_timestamp", "5 minutes")
             .groupBy(
                 window("delivery_timestamp", "5 minutes").alias("time_window"),
@@ -309,7 +309,7 @@ def gold_delivery_by_gift_type():
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="gold_overall_progress",
     comment="Overall delivery progress and cumulative statistics",
     table_properties={
@@ -322,7 +322,7 @@ def gold_overall_progress():
     Tracks overall progress throughout Santa's journey.
     """
     return (
-        dlt.read_stream("silver_santa_deliveries")
+        dp.read_stream("silver_santa_deliveries")
             .withWatermark("delivery_timestamp", "5 minutes")
             .groupBy(
                 window("delivery_timestamp", "10 minutes").alias("time_window")
@@ -369,7 +369,7 @@ def gold_overall_progress():
 
 # COMMAND ----------
 
-@dlt.table(
+@dp.table(
     name="gold_top_cities",
     comment="Top cities by delivery volume",
     table_properties={
@@ -381,7 +381,7 @@ def gold_top_cities():
     Gold table: Rank cities by delivery volume and gifts delivered.
     """
     return (
-        dlt.read_stream("silver_santa_deliveries")
+        dp.read_stream("silver_santa_deliveries")
             .withWatermark("delivery_timestamp", "5 minutes")
             .groupBy(
                 window("delivery_timestamp", "15 minutes").alias("time_window"),
