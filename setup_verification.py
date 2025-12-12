@@ -3,6 +3,8 @@
 # MAGIC # Setup and Verification Notebook
 # MAGIC 
 # MAGIC Use this notebook to verify your pipeline setup and check data flow.
+# MAGIC 
+# MAGIC **Unity Catalog Location**: `tleider.holiday`
 
 # COMMAND ----------
 
@@ -33,17 +35,18 @@ except Exception as e:
 # COMMAND ----------
 
 # DBTITLE 1,List Pipeline Tables
-database = "santa_delivery_db"
+catalog = "tleider"
+schema = "holiday"
 
-# Show all tables in the target database
-tables = spark.sql(f"SHOW TABLES IN {database}").collect()
+# Show all tables in the target schema
+tables = spark.sql(f"SHOW TABLES IN {catalog}.{schema}").collect()
 
-print(f"Tables in {database}:")
+print(f"Tables in {catalog}.{schema}:")
 print("-" * 60)
 for table in tables:
     table_name = table.tableName
     try:
-        count = spark.sql(f"SELECT COUNT(*) as cnt FROM {database}.{table_name}").collect()[0].cnt
+        count = spark.sql(f"SELECT COUNT(*) as cnt FROM {catalog}.{schema}.{table_name}").collect()[0].cnt
         print(f"  ✓ {table_name}: {count} records")
     except Exception as e:
         print(f"  ✗ {table_name}: Error - {e}")
@@ -57,7 +60,7 @@ for table in tables:
 
 # DBTITLE 1,Bronze Layer Sample
 try:
-    bronze = spark.table(f"{database}.bronze_santa_deliveries")
+    bronze = spark.table(f"{catalog}.{schema}.bronze_santa_deliveries")
     print(f"Bronze records: {bronze.count()}")
     display(bronze.orderBy("ingestion_timestamp", ascending=False).limit(20))
 except Exception as e:
@@ -72,7 +75,7 @@ except Exception as e:
 
 # DBTITLE 1,Silver Layer Sample
 try:
-    silver = spark.table(f"{database}.silver_santa_deliveries")
+    silver = spark.table(f"{catalog}.{schema}.silver_santa_deliveries")
     print(f"Silver records: {silver.count()}")
     
     # Show data quality stats
@@ -92,7 +95,7 @@ except Exception as e:
 
 # DBTITLE 1,Gold - Real-time Summary
 try:
-    gold_summary = spark.table(f"{database}.gold_delivery_summary_realtime")
+    gold_summary = spark.table(f"{catalog}.{schema}.gold_delivery_summary_realtime")
     print(f"Gold summary records: {gold_summary.count()}")
     display(gold_summary.orderBy("window_start", ascending=False).limit(10))
 except Exception as e:
@@ -102,7 +105,7 @@ except Exception as e:
 
 # DBTITLE 1,Gold - Regional Performance
 try:
-    gold_region = spark.table(f"{database}.gold_delivery_by_region")
+    gold_region = spark.table(f"{catalog}.{schema}.gold_delivery_by_region")
     display(gold_region.orderBy("window_start", ascending=False).limit(20))
 except Exception as e:
     print(f"Error: {e}")
@@ -126,13 +129,13 @@ print()
 # Check each layer
 layers = [
     ("Source", source_path, "delta"),
-    ("Bronze", f"{database}.bronze_santa_deliveries", "table"),
-    ("Silver", f"{database}.silver_santa_deliveries", "table"),
-    ("Gold - Summary", f"{database}.gold_delivery_summary_realtime", "table"),
-    ("Gold - Region", f"{database}.gold_delivery_by_region", "table"),
-    ("Gold - Gift Type", f"{database}.gold_delivery_by_gift_type", "table"),
-    ("Gold - Progress", f"{database}.gold_overall_progress", "table"),
-    ("Gold - Cities", f"{database}.gold_top_cities", "table")
+    ("Bronze", f"{catalog}.{schema}.bronze_santa_deliveries", "table"),
+    ("Silver", f"{catalog}.{schema}.silver_santa_deliveries", "table"),
+    ("Gold - Summary", f"{catalog}.{schema}.gold_delivery_summary_realtime", "table"),
+    ("Gold - Region", f"{catalog}.{schema}.gold_delivery_by_region", "table"),
+    ("Gold - Gift Type", f"{catalog}.{schema}.gold_delivery_by_gift_type", "table"),
+    ("Gold - Progress", f"{catalog}.{schema}.gold_overall_progress", "table"),
+    ("Gold - Cities", f"{catalog}.{schema}.gold_top_cities", "table")
 ]
 
 for layer_name, path, read_type in layers:
@@ -169,7 +172,7 @@ try:
             COUNT(DISTINCT country) as countries_visited,
             COUNT(DISTINCT city) as cities_visited,
             ROUND(SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate_pct
-        FROM {database}.silver_santa_deliveries
+        FROM {catalog}.{schema}.silver_santa_deliveries
     """)
     
     display(stats)
@@ -190,7 +193,7 @@ try:
             DATE_FORMAT(delivery_timestamp, 'yyyy-MM-dd HH:mm') as minute,
             COUNT(*) as events_per_minute,
             SUM(num_gifts) as gifts_per_minute
-        FROM {database}.silver_santa_deliveries
+        FROM {catalog}.{schema}.silver_santa_deliveries
         WHERE delivery_timestamp >= current_timestamp() - INTERVAL 5 MINUTES
         GROUP BY DATE_FORMAT(delivery_timestamp, 'yyyy-MM-dd HH:mm')
         ORDER BY minute DESC

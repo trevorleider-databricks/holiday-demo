@@ -4,6 +4,8 @@
 -- MAGIC 
 -- MAGIC This notebook contains SQL queries for creating visualizations in the Databricks SQL Dashboard.
 -- MAGIC Run these queries against the Gold tables from the DLT pipeline.
+-- MAGIC 
+-- MAGIC **Unity Catalog Location**: `tleider.holiday`
 
 -- COMMAND ----------
 
@@ -25,7 +27,7 @@ SELECT
   ROUND(period_distance_km, 2) as total_distance_km,
   ROUND(avg_reindeer_speed, 2) as avg_speed_kmh,
   ROUND(avg_magic_level * 100, 2) as magic_level_pct
-FROM gold_overall_progress
+FROM tleider.holiday.gold_overall_progress
 ORDER BY window_start DESC
 LIMIT 1
 
@@ -43,7 +45,7 @@ SELECT
   total_deliveries,
   successful_deliveries,
   delayed_deliveries
-FROM gold_delivery_summary_realtime
+FROM tleider.holiday.gold_delivery_summary_realtime
 ORDER BY window_start DESC
 LIMIT 60  -- Last hour of 1-minute windows
 
@@ -57,7 +59,7 @@ LIMIT 60  -- Last hour of 1-minute windows
 -- Most recent 5-minute window by region
 WITH latest_window AS (
   SELECT MAX(window_start) as max_window
-  FROM gold_delivery_by_region
+  FROM tleider.holiday.gold_delivery_by_region
 )
 SELECT 
   r.region,
@@ -68,7 +70,7 @@ SELECT
   r.countries_in_region,
   r.cities_visited,
   ROUND(r.avg_delivery_time, 2) as avg_delivery_time_sec
-FROM gold_delivery_by_region r
+FROM tleider.holiday.gold_delivery_by_region r
 INNER JOIN latest_window lw ON r.window_start = lw.max_window
 ORDER BY r.total_deliveries DESC
 
@@ -82,7 +84,7 @@ ORDER BY r.total_deliveries DESC
 -- Latest performance metrics by gift type
 WITH latest_window AS (
   SELECT MAX(window_start) as max_window
-  FROM gold_delivery_by_gift_type
+  FROM tleider.holiday.gold_delivery_by_gift_type
 )
 SELECT 
   g.gift_type,
@@ -91,7 +93,7 @@ SELECT
   ROUND(g.avg_delivery_time, 2) as avg_delivery_time_sec,
   ROUND(g.avg_adjusted_delivery_time, 2) as avg_adjusted_time_sec,
   ROUND(g.success_rate_percentage, 2) as success_rate_pct
-FROM gold_delivery_by_gift_type g
+FROM tleider.holiday.gold_delivery_by_gift_type g
 INNER JOIN latest_window lw ON g.window_start = lw.max_window
 ORDER BY g.total_deliveries DESC
 
@@ -105,7 +107,7 @@ ORDER BY g.total_deliveries DESC
 -- Top cities with most deliveries in recent window
 WITH latest_window AS (
   SELECT MAX(window_start) as max_window
-  FROM gold_top_cities
+  FROM tleider.holiday.gold_top_cities
 )
 SELECT 
   t.city,
@@ -115,7 +117,7 @@ SELECT
   t.total_gifts,
   t.successful_deliveries,
   ROUND(t.avg_delivery_time, 2) as avg_delivery_time_sec
-FROM gold_top_cities t
+FROM tleider.holiday.gold_top_cities t
 INNER JOIN latest_window lw ON t.window_start = lw.max_window
 ORDER BY t.total_deliveries DESC
 LIMIT 10
@@ -141,7 +143,7 @@ SELECT
   weather_condition,
   ROUND(reindeer_speed_kmh, 2) as speed_kmh,
   ROUND(magic_level * 100, 2) as magic_pct
-FROM silver_santa_deliveries
+FROM tleider.holiday.silver_santa_deliveries
 ORDER BY delivery_timestamp DESC
 LIMIT 100
 
@@ -163,7 +165,7 @@ SELECT
     ELSE '120+ sec'
   END as time_bucket,
   COUNT(*) as delivery_count
-FROM silver_santa_deliveries
+FROM tleider.holiday.silver_santa_deliveries
 WHERE delivery_timestamp >= current_timestamp() - INTERVAL 1 HOUR
 GROUP BY time_bucket
 ORDER BY 
@@ -189,7 +191,7 @@ SELECT
   COUNT(*) as delivery_count,
   ROUND(AVG(delivery_time_seconds), 2) as avg_delivery_time,
   ROUND(SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate_pct
-FROM silver_santa_deliveries
+FROM tleider.holiday.silver_santa_deliveries
 WHERE delivery_timestamp >= current_timestamp() - INTERVAL 1 HOUR
 GROUP BY weather_condition
 ORDER BY delivery_count DESC
@@ -207,7 +209,7 @@ SELECT
   ROUND(total_distance_traveled_km, 2) as distance_km,
   total_deliveries,
   ROUND(avg_distance_km, 2) as avg_distance_per_delivery
-FROM gold_delivery_summary_realtime
+FROM tleider.holiday.gold_delivery_summary_realtime
 ORDER BY window_start ASC
 LIMIT 100
 
@@ -225,7 +227,7 @@ SELECT
   total_distance_traveled_km as total_distance_km,
   ROUND(total_distance_traveled_km / (avg_delivery_time_seconds / 3600), 2) as effective_speed_kmh,
   ROUND(avg_delivery_time_seconds, 2) as avg_time_per_delivery_sec
-FROM gold_delivery_summary_realtime
+FROM tleider.holiday.gold_delivery_summary_realtime
 ORDER BY window_start DESC
 LIMIT 1
 
@@ -242,7 +244,7 @@ SELECT
   ROUND(success_rate_percentage, 2) as success_rate,
   ROUND(delay_rate_percentage, 2) as delay_rate,
   total_deliveries
-FROM gold_overall_progress
+FROM tleider.holiday.gold_overall_progress
 ORDER BY window_start DESC
 LIMIT 50
 
@@ -263,7 +265,7 @@ SELECT
   COUNT(*) as delivery_count,
   SUM(num_gifts) as total_gifts,
   ROUND(AVG(delivery_time_seconds), 2) as avg_delivery_time
-FROM silver_santa_deliveries
+FROM tleider.holiday.silver_santa_deliveries
 WHERE delivery_timestamp >= current_timestamp() - INTERVAL 30 MINUTES
 GROUP BY city, country, region, latitude, longitude
 ORDER BY delivery_count DESC
@@ -280,7 +282,7 @@ SELECT
   status,
   COUNT(*) as count,
   ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) as percentage
-FROM silver_santa_deliveries
+FROM tleider.holiday.silver_santa_deliveries
 WHERE delivery_timestamp >= current_timestamp() - INTERVAL 15 MINUTES
 GROUP BY status
 
@@ -299,7 +301,7 @@ SELECT
   CONCAT(ROUND(avg_time_to_delivery_minutes, 1), ' min') as avg_time,
   CONCAT(ROUND(period_distance_km, 0), ' km') as distance,
   CONCAT(ROUND(avg_reindeer_speed, 0), ' km/h') as speed
-FROM gold_overall_progress
+FROM tleider.holiday.gold_overall_progress
 ORDER BY window_start DESC
 LIMIT 1
 

@@ -1,5 +1,7 @@
 # Quick Start Guide - Santa's Delivery Pipeline
 
+**Unity Catalog Location**: `tleider.holiday`
+
 ## 🎯 Get Running in 5 Minutes
 
 ### Step 1: Start Data Generation (2 minutes)
@@ -13,7 +15,8 @@
 2. Fill in:
    - **Name**: `santa_delivery_pipeline`
    - **Notebook**: Select `santa_delivery_dlt_pipeline.py`
-   - **Target**: `santa_delivery_db`
+   - **Catalog**: `tleider`
+   - **Target**: `holiday`
    - **Storage**: `/Users/your_username/santa_pipeline`
    - **Configuration**: Add key `source_path` = `/tmp/santa_deliveries`
    - **Mode**: Continuous

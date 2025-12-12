@@ -1,5 +1,7 @@
 {
   "name": "santa_delivery_pipeline",
+  "catalog": "tleider",
+  "target": "holiday",
   "storage": "/Users/{your_username}/santa_delivery_pipeline",
   "configuration": {
     "source_path": "/tmp/santa_deliveries"
@@ -21,7 +23,6 @@
     }
   ],
   "libraries": [],
-  "target": "santa_delivery_db",
   "continuous": true,
   "channel": "PREVIEW",
   "edition": "ADVANCED",

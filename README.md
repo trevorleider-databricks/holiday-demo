@@ -2,9 +2,13 @@
 
 A Databricks Delta Live Tables (DLT) streaming pipeline that simulates Santa's gift deliveries around the world with real-time analytics and dashboards.
 
+**Unity Catalog Location**: `tleider.holiday`
+
 ## 🎄 Project Overview
 
 This project demonstrates a complete streaming data pipeline using Databricks and Spark Structured Streaming with declarative DLT logic. It simulates Santa's sleigh making gift deliveries to 30+ cities worldwide, tracking performance metrics, weather conditions, and delivery success rates in real-time.
+
+All tables are stored in Unity Catalog at `tleider.holiday` for enterprise-grade governance and security.
 
 ## 🏗️ Architecture
 
@@ -91,7 +95,8 @@ The pipeline powers a real-time dashboard showing:
    - **Product Edition**: Advanced
    - **Pipeline Mode**: Continuous
    - **Notebook Libraries**: Add `santa_delivery_dlt_pipeline.py`
-   - **Target**: `santa_delivery_db`
+   - **Catalog**: `tleider`
+   - **Target Schema**: `holiday`
    - **Storage Location**: `/Users/{your_username}/santa_delivery_pipeline`
    - **Configuration**:
      - Key: `source_path`
