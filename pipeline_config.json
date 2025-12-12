@@ -1,0 +1,31 @@
+{
+  "name": "santa_delivery_pipeline",
+  "storage": "/Users/{your_username}/santa_delivery_pipeline",
+  "configuration": {
+    "source_path": "/tmp/santa_deliveries"
+  },
+  "clusters": [
+    {
+      "label": "default",
+      "num_workers": 2,
+      "spark_version": "13.3.x-scala2.12",
+      "node_type_id": "i3.xlarge",
+      "spark_conf": {
+        "spark.databricks.delta.preview.enabled": "true",
+        "spark.databricks.delta.retentionDurationCheck.enabled": "false"
+      },
+      "custom_tags": {
+        "project": "santa_delivery",
+        "environment": "demo"
+      }
+    }
+  ],
+  "libraries": [],
+  "target": "santa_delivery_db",
+  "continuous": true,
+  "channel": "PREVIEW",
+  "edition": "ADVANCED",
+  "photon": true,
+  "development": false
+}
+
